@@ -473,7 +473,7 @@ hist(sample(mCor, 1000, replace = F), prob=T, main='Correlation of genes', xlab=
 
 # create the graph cluster object
 # using absolute correlation vs actual values lead to different clusters
-oGr = CGraphClust(dfGraph, abs(mCor), iCorCut = 0.3)
+oGr = CGraphClust(dfGraph, abs(mCor), iCorCut = 0.5)
 
 # order the count matrix before making heatmaps or plots
 rownames(mCounts) = fGroups

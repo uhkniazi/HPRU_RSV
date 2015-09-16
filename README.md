@@ -11,3 +11,8 @@ The following steps are done for analysis:
 5- Selecting Differentially expressed genes in each factor level compared to base line.  
 6- Producing volcano plots, heatmaps, csv files and a graph. GO term enrichment analysis done using innate db.  
 
+# HJ_Habibi_200213_Apr13_No_Grps_1_2_3.R
+Same dataset as HJ_Habibi_200213_Apr13_No.R, however the grouping factor was Study Group 1, 2 and 3.  
+The analysis was similar to the previous script. However as there were more DE genes in this case, a more detailed CGraph based 
+clustering was performed, with various summary plots, particularly the top genes based on centrality scores.
+
