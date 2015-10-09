@@ -82,6 +82,10 @@ f_Plot3DPCA(pr.out$x[,1:3], col, pch=19, xlab='Z1', ylab='Z2', zlab='Z3',
             main='Plot of first 3 components')
 par(p.old)
 
+l = f_lGetPCAClusterCount(pr.out)
+l$cluster.count
+table(c1 = l$cluster.label$c1, c2 = l$cluster.label$c2)
+
 # remove the outliers 
 # remove the outlier groups from the data
 # these can be seen on the pc2 and pc3 plots
