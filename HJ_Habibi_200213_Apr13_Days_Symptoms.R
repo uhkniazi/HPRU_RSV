@@ -28,8 +28,8 @@ pData(oExp.lumi) = dfSamples
 fSamples = rep(NA, length=nrow(pData(oExp.lumi)))
 
 i = grepl('Uninfected no cold', x = oExp.lumi$Symptoms)
-# group all the days 1 and 3 into one group
-i2 = grepl('^0$|^1$|^3$|^28$', x = oExp.lumi$Day)
+# group days 0 and 1 into uninfected group
+i2 = grepl('^0$|^1$', x = oExp.lumi$Day)
 fSamples[i | i2 ] = 'UINC'
 
 # sanity check
@@ -38,15 +38,16 @@ table(dfSamples[i | i2, 'Symptoms'], dfSamples[i | i2, 'Day'])
 # create second level by grouping 
 # infected together merged and split into 3 days
 i = !grepl('Uninfected no cold', x = oExp.lumi$Symptoms)
-# group all the days 1 and 3 into one group
-i2 = !grepl('^0$|^1$|^3$|^28$', x = oExp.lumi$Day)
-#fSamples[i | i2 ] = 'UINC'
+# these days have been grouped into uninfected group
+i2 = !grepl('^0$|^1$', x = oExp.lumi$Day)
 
 # sanity check
 table(dfSamples[i & i2, 'Symptoms'], dfSamples[i & i2, 'Day'])
 fSamples[i & i2] = paste0('INF', dfSamples[i & i2, 'Day'])
+table(fSamples)
 
-fSamples = factor(fSamples, levels = c('UINC', 'INF5', 'INF7', 'INF10'))
+fSamples = factor(fSamples, levels = c('UINC', 'INF3', 'INF5', 'INF7', 'INF10', 'INF28'))
+table(fSamples)
 ############# Select genes based on differential expression analysis.
 mDat = exprs(oExp.lumi)
 
@@ -136,7 +137,7 @@ colnames(mCommonGenes) = names(n)
 
 ## choose appropriate combination
 ## genes common amongs all stages
-i = which(rowSums(mCommonGenes) == 2)
+#i = which(rowSums(mCommonGenes) == 2)
 ## all overexpressed genes
 i = 1:nrow(mCommonGenes)
 
@@ -171,7 +172,7 @@ for (i in seq_along(n)) {
   dfGenes = topTable(fit, coef = n[i], number = Inf)
   dfGenes.2 = dfGenes[lSigGenes.adj[[names(n[i])]],]
   rownames(dfGenes.2) = NULL
-  f = paste('Results/', 'Significant_genes_at_10pcFDR_SymptomsUINC_vs_', names(n[i]), '.csv', sep='')
+  f = paste('Results/', 'Significant_genes_at_10pcFDR_UINC_vs_', names(n[i]), '.csv', sep='')
   dfGenes.2 = dfGenes.2[,c(2, 3, 4, 5, 6, 8, 9)]
   write.csv(dfGenes.2, file=f)
 }
@@ -179,6 +180,8 @@ for (i in seq_along(n)) {
 
 ########### pathway analysis using CGraph library
 # uniprot annotation for data
+#dfGenes = topTable(fit, number = Inf)
+#cvGenes = rownames(dfGenes[(dfGenes$adj.P.Val < quantile(dfGenes$adj.P.Val, probs = 0.25)),])
 cvGenes = rownames(mCommonGenes)
 dfGenes = select(lumiHumanAll.db, keys = cvGenes, columns = c('ENTREZID', 'SYMBOL', 'GENENAME', 'UNIPROT'), keytype = 'PROBEID')
 dfGenes = na.omit(dfGenes)
@@ -210,17 +213,21 @@ fGroups = fSamples
 colnames(mCounts) = fGroups
 mCounts = mCounts[,order(fGroups)]
 fGroups = fGroups[order(fGroups)]
+mCounts = t(mCounts)
 
 # select genes that have a reactome term attached
+# select genes that have a reactome term attached
 n = unique(dfGraph$ENTREZID)
-mCounts = mCounts[n,]
-mCounts = t(mCounts)
+mCounts = mCounts[,n]
+print(paste('Total number of genes with Reactome terms', length(n)))
 levels(fGroups)
 
-# create correlation matrix
+# create a correlation matrix to decide cor cutoff
 mCor = cor(mCounts)
+
 # check distribution 
-hist(sample(mCor, 10000, replace = T), prob=T, main='Correlation of genes', xlab='', family='Arial')
+hist(sample(mCor, 1000, replace = F), prob=T, main='Correlation of genes', xlab='', family='Arial', breaks=20, xaxt='n')
+axis(1, at = seq(-1, 1, by=0.1), las=2)
 
 # stabalize the data and check correlation again
 mCounts.bk = mCounts
@@ -231,15 +238,15 @@ rownames(mCounts) = fGroups
 # create a correlation matrix
 mCor = cor(mCounts)
 # check distribution 
-hist(sample(mCor, 1000, replace = F), prob=T, main='Correlation of genes', xlab='', family='Arial')
-hist(sample(mCor, 10000, replace = F), prob=T, main='Correlation of genes', xlab='', family='Arial', breaks=20, xaxt='n')
+hist(sample(mCor, 1000, replace = F), prob=T, main='Correlation of genes', xlab='', family='Arial', breaks=20, xaxt='n')
 axis(1, at = seq(-1, 1, by=0.1), las=2)
 
 # create the graph cluster object
 # using absolute correlation vs actual values lead to different clusters
-oGr = CGraphClust(dfGraph, abs(mCor), iCorCut = 0.7, bSuppressPlots = F)
+oGr = CGraphClust(dfGraph, abs(mCor), iCorCut = 0.5, bSuppressPlots = F)
 
 ## general graph structure
+set.seed(1)
 plot.final.graph(oGr)
 
 ## community structure
@@ -297,7 +304,7 @@ cvSum.2 = as.character(dfTopGenes.cent$VertexID)
 dfTopGenes.cent$Summary = n[cvSum.2]
 ####### Section ends
 
-write.csv(dfTopGenes.cent, file='Results/Top_Centrality_Genes_HJ_Habibi_200213_Apr13_Symptoms.csv')
+write.csv(dfTopGenes.cent, file='Results/Top_Centrality_Genes_HJ_Habibi_200213_Apr13_UINC_vs_INF.csv')
 
 # plot a heatmap of these top genes
 m1 = mCounts[,as.character(dfTopGenes.cent$VertexID)]
