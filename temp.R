@@ -6,8 +6,10 @@ dfnc.3.5 = read.csv(file.choose(), header = T, row.names=1)
 dfnc.7.10 = read.csv(file.choose(), header = T, row.names=1)
 
 
+dfReactome.terms = dfReactome.sub[!duplicated(dfReactome.sub$V2),]
+dfReactome.terms[dfReactome.terms$V2 == '1280218', c('V2', 'V4')]
 
-
+dfReactome.terms[dfReactome.terms$V2 %in% csClust, c('V2', 'V4')]
 
 
 
