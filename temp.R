@@ -1,3 +1,19 @@
+dfui.7 = read.csv(file.choose(), header = T, row.names=1)
+dfui.10 = read.csv(file.choose(), header = T, row.names=1)
+dfui.28 = read.csv(file.choose(), header = T, row.names=1)
+
+dfnc.3.5 = read.csv(file.choose(), header = T, row.names=1)
+dfnc.7.10 = read.csv(file.choose(), header = T, row.names=1)
+
+
+
+
+
+
+
+
+
+
 library(annotate)
 library(lumiHumanAll.db)
 library(lumiHumanIDMapping)
