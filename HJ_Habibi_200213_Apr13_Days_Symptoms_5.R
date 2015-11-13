@@ -162,24 +162,54 @@ mCommonGenes = sapply(seq_along(n), function(x) cvCommonGenes %in% lSigGenes.adj
 rownames(mCommonGenes) = cvCommonGenes
 colnames(mCommonGenes) = names(n)
 
+#### analysis by grouping genes
+# create groups in the data based on 2^8-1 combinations
+mCommonGenes.grp = mCommonGenes
+set.seed(123)
+dm = dist(mCommonGenes.grp, method='binary')
+hc = hclust(dm)
+
+# cut the tree at the bottom to create groups
+cp = cutree(hc, h = 0.2)
+# sanity checks
+table(cp)
+length(cp)
+length(unique(cp))
+
+mCommonGenes.grp = cbind(mCommonGenes.grp, cp)
+
+### print and observe this table and select the groups you are interested in
+temp = mCommonGenes.grp
+temp = (temp[!duplicated(cp),])
+temp2 = cbind(temp, table(cp))
+
+# select groups of choice
+iSelGroups = c(1, 4, 21, 39, 45, 65, 66, 67, 70, 73, 74, 75, 77, 78, 79)
+rn = rownames(mCommonGenes.grp[cp == iSelGroups[14],])
+m1 = mDat[rn,]
+df.rn = select(lumiHumanAll.db, keys = rn, columns = c('ENTREZID', 'SYMBOL', 'GENENAME'), keytype = 'PROBEID')
+# write csv to look at gene list
+write.csv(df.rn[,-1], file=paste('Temp/', iSelGroups[14], '.csv', sep=''))
+
 ## choose appropriate combination
-## common between 
-i = which(mCommonGenes[,'NoCold0.1'] & mCommonGenes[,'Cold0.1'])
-i = which(mCommonGenes[,'NoCold0.1'] | mCommonGenes[,'Cold0.1'])
-i = which(mCommonGenes[,'NoCold0.1'] & !mCommonGenes[,'Cold0.1'])
-## all overexpressed genes
+# ## common between 
+# i = which(mCommonGenes[,'NoCold0.1'] & mCommonGenes[,'Cold0.1'])
+# i = which(mCommonGenes[,'NoCold0.1'] | mCommonGenes[,'Cold0.1'])
+# i = which(mCommonGenes[,'NoCold0.1'] & !mCommonGenes[,'Cold0.1'])
+
+## all overexpressed genes if interested in
 i = 1:nrow(mCommonGenes)
 
 m1 = as.matrix(mCommonGenes[i,])
 m1 = mDat[rownames(m1),]
 
-# if using part of data
-m1 = m1[,which(fSamples %in% c('UINC', 'NoCold0.1', 'Cold0.1'))]
-fGroups = as.character(fSamples[which(fSamples %in% c('UINC', 'NoCold0.1', 'Cold0.1'))])
-colnames(m1) = fGroups
-fGroups = factor(fGroups, levels = c('UINC', 'NoCold0.1', 'Cold0.1'))
-m1 = m1[,order(fGroups)]
-fGroups = fGroups[order(fGroups)]
+# # if using part of data
+# m1 = m1[,which(fSamples %in% c('UINC', 'NoCold0.1', 'Cold0.1'))]
+# fGroups = as.character(fSamples[which(fSamples %in% c('UINC', 'NoCold0.1', 'Cold0.1'))])
+# colnames(m1) = fGroups
+# fGroups = factor(fGroups, levels = c('UINC', 'NoCold0.1', 'Cold0.1'))
+# m1 = m1[,order(fGroups)]
+# fGroups = fGroups[order(fGroups)]
 
 # if using all data
 fGroups = fSamples
@@ -288,7 +318,7 @@ axis(1, at = seq(-1, 1, by=0.1), las=2)
 
 # create the graph cluster object
 # using absolute correlation vs actual values lead to different clusters
-oGr = CGraphClust(dfGraph, abs(mCor), iCorCut = 0.4, bSuppressPlots = F)
+oGr = CGraphClust(dfGraph, abs(mCor), iCorCut = 0.5, bSuppressPlots = F)
 
 ## general graph structure
 set.seed(1)
@@ -435,7 +465,7 @@ par(p.old)
 plot.mean.expressions(oGr, t(mCounts), fGroups, legend.pos = 'topright', main='Total Change in Each Cluster')
 # only significant clusters
 par(mar=c(7, 3, 2, 2)+0.1)
-plot.significant.expressions(oGr, t(mCounts), fGroups, main='Significant Clusters', lwd=2, bStabalize = T, cex.axis=0.7)
+plot.significant.expressions(oGr, t(mCounts), fGroups, main='Significant Clusters', lwd=1, bStabalize = T, cex.axis=0.7)
 pr.out = plot.components(oGr, t(mCounts), fGroups, bStabalize = T)
 par(mar=c(4,2,4,2))
 biplot(pr.out, cex=0.8, cex.axis=0.8, arrow.len = 0)
