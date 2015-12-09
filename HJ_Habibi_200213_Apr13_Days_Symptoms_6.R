@@ -290,10 +290,26 @@ mCounts = mDat[rownames(dfGenes),]
 rownames(mCounts) = dfGenes$ENTREZID
 fGroups = as.character(fSamples)
 # select only the groups with significant genes
-n = (which(sapply(lSigGenes.adj, length) >= 10)) + 1
+n = (which(sapply(lSigGenes.adj, length) >= 20)) + 1
 i = which(fSamples %in% levels(fSamples)[c(1, n)])
 fGroups = factor(fGroups[i], levels = levels(fSamples)[c(1, n)])
+
+# merge the groups together
+fGroups.2 = rep(NA, length(fGroups))
+i = grep('UINC', fGroups)
+fGroups[i]
+fGroups.2[i] = 'UINC'
+i = grep('^NoCold', fGroups)
+fGroups[i]
+fGroups.2[i] = 'NoCold'
+i = grep('^Cold', fGroups)
+fGroups[i]
+fGroups.2[i] = 'Cold'
+fGroups = factor(fGroups.2, levels = c('UINC', 'NoCold', 'Cold'))
+
 # subset the count matrix
+n = (which(sapply(lSigGenes.adj, length) >= 20)) + 1
+i = which(fSamples %in% levels(fSamples)[c(1, n)])
 mCounts = mCounts[,i]
 colnames(mCounts) = fGroups
 mCounts = mCounts[,order(fGroups)]
@@ -316,18 +332,18 @@ axis(1, at = seq(-1, 1, by=0.1), las=2)
 # stabalize the data and check correlation again
 mCounts.bk = mCounts
 # stabalize the data
-mCounts = apply(mCounts, 2, function(x) f_ivStabilizeData(x, fGroups))
-rownames(mCounts) = fGroups
+mCounts.st = apply(mCounts, 2, function(x) f_ivStabilizeData(x, fGroups))
+rownames(mCounts.st) = fGroups
 
 # create a correlation matrix
-mCor = cor(mCounts)
+mCor = cor(mCounts.st)
 # check distribution 
 hist(sample(mCor, 1000, replace = F), prob=T, main='Correlation of genes', xlab='', family='Arial', breaks=20, xaxt='n')
 axis(1, at = seq(-1, 1, by=0.1), las=2)
 
 # create the graph cluster object
 # using absolute correlation vs actual values lead to different clusters
-oGr = CGraphClust(dfGraph, abs(mCor), iCorCut = 0.5, bSuppressPlots = F)
+oGr = CGraphClust(dfGraph, abs(mCor), iCorCut = 0.75, bSuppressPlots = F)
 
 ## general graph structure
 set.seed(1)
@@ -351,9 +367,6 @@ plot(getCommunity(oGr), ig, vertex.label=NA, layout=layout_with_fr,
 # look at the graph centrality properties
 set.seed(1)
 ig = plot.centrality.graph(oGr)
-ig = f_igCalculateVertexSizesAndColors(ig, t(mCounts), fGroups, bColor = F, iSize = 40)
-set.seed(1)
-plot(ig, vertex.label=NA, layout=layout_with_fr, vertex.frame.color=NA, edge.color='darkgrey')
 par(p.old)
 
 # these diagnostics plots should be looked at in combination with the centrality graphs
@@ -362,194 +375,64 @@ plot.centrality.diagnostics(oGr)
 # get the centrality parameters
 mCent = mPrintCentralitySummary(oGr)
 
-## get a table of top vertices 
-dfTopGenes.cent = dfGetTopVertices(oGr, iQuantile = 0.90)
-rownames(dfTopGenes.cent) = dfTopGenes.cent$VertexID
-# assign metadata annotation to these genes and clusters
-dfCluster = getClusterMapping(oGr)
-colnames(dfCluster) = c('gene', 'cluster')
-rownames(dfCluster) = dfCluster$gene
-df = f_dfGetGeneAnnotation(as.character(dfTopGenes.cent$VertexID))
-dfTopGenes.cent = cbind(dfTopGenes.cent[as.character(df$ENTREZID),], SYMBOL=df$SYMBOL, GENENAME=df$GENENAME)
-dfCluster = dfCluster[as.character(dfTopGenes.cent$VertexID),]
-dfTopGenes.cent = cbind(dfTopGenes.cent, Cluster=dfCluster$cluster)
-
-####### NOTE: This section of code is very slow, use only if you need data from genbank
-# loop and get the data from genbank
-n = rep(NA, length=nrow(dfTopGenes.cent))
-names(n) = as.character(dfTopGenes.cent$VertexID)
-for (i in seq_along(n)){
-  n[i] = f_csGetGeneSummaryFromGenbank(names(n)[i])
-  # this wait time is required to stop sending queries to ncbi server very quickly
-  Sys.sleep(time = 3)
-}
-cvSum.2 = as.character(dfTopGenes.cent$VertexID)
-dfTopGenes.cent$Summary = n[cvSum.2]
-####### Section ends
-
-write.csv(dfTopGenes.cent, file='Results/Top_Centrality_Genes_HJ_Habibi_200213_Apr13_NC_vs_Cold.csv')
-
-# plot a heatmap of these top genes
-m1 = mCounts[,as.character(dfTopGenes.cent$VertexID)]
-m1 = scale(m1)
-m1 = t(m1)
-# threshhold the values
-m1[m1 < -3] = -3
-m1[m1 > 3] = 3
-rownames(m1) = as.character(dfTopGenes.cent$SYMBOL)
-# draw the heatmap  color='-RdBu:50'
-aheatmap(m1, color=c('blue', 'black', 'red'), breaks=0, scale='none', Rowv = TRUE, 
-         annColors=NA, Colv=NA)
-
-
-# plot a graph of these top genes
-par(mar=c(1,1,1,1)+0.1)
-ig = induced_subgraph(getFinalGraph(oGr), vids = as.character(dfTopGenes.cent$VertexID))
-ig = f_igCalculateVertexSizesAndColors(ig, t(mCounts), fGroups, bColor = T, iSize=30)
-n = V(ig)$name
-lab = f_dfGetGeneAnnotation(n)
-V(ig)$label = as.character(lab$SYMBOL)
-set.seed(1)
-plot(ig, vertex.label.cex=0.2, layout=layout_with_fr, vertex.frame.color='darkgrey', edge.color='lightgrey', main='Cold7.10 vs NC')
-legend('topright', legend = c('Underexpressed', 'Overexpressed'), fill = c('lightblue', 'pink'))
-
-# switch the factor levels
-par(mar=c(1,1,1,1)+0.1)
-ig = induced_subgraph(getFinalGraph(oGr), vids = as.character(dfTopGenes.cent$VertexID))
-fG = factor(fGroups, levels = c('NC', 'Cold7.10', 'Cold3.5'))
-ig = f_igCalculateVertexSizesAndColors(ig, t(mCounts), fG, bColor = T, iSize=30)
-n = V(ig)$name
-lab = f_dfGetGeneAnnotation(n)
-V(ig)$label = as.character(lab$SYMBOL)
-set.seed(1)
-plot(ig, vertex.label.cex=0.2, layout=layout_with_fr, vertex.frame.color='darkgrey', edge.color='lightgrey', main='Cold3.5 vs NC')
-legend('topright', legend = c('Underexpressed', 'Overexpressed'), fill = c('lightblue', 'pink'))
-
-
-
-
-## location of the largest clique
-# plot largest connected graph - clique
-set.seed(1)
-ig = plot.graph.clique(oGr)
-ig = f_igCalculateVertexSizesAndColors(ig, t(mCounts), fGroups, bColor = F, iSize = 100)
-par(mar=c(1,1,1,1)+0.1)
-set.seed(1)
-plot(ig, vertex.label=NA, layout=layout_with_fr, vertex.frame.color=NA, edge.color='lightgrey')
-
-### largest clique 
-# plot the graph with clique highlighted
-set.seed(1)
-ig = plot.graph.clique(oGr)
-ig = f_igCalculateVertexSizesAndColors(ig, t(mCounts), fGroups, bColor = F)
-par(mar=c(1,1,1,1)+0.1)
-set.seed(1)
-plot(ig, vertex.label=NA, layout=layout_with_fr, vertex.frame.color=NA, edge.color='lightgrey')
-
-# plot the largest clique
-par(mar=c(1,1,1,1)+0.1)
-ig = induced_subgraph(getFinalGraph(oGr), vids = unlist(getLargestCliques(oGr)))
-ig = f_igCalculateVertexSizesAndColors(ig, t(mCounts), fGroups, bColor = T, iSize = 40)
-n = V(ig)$name
-lab = f_dfGetGeneAnnotation(n)
-V(ig)$label = as.character(lab$SYMBOL)
-set.seed(1)
-plot(ig, layout=layout_with_fr)
-legend('topright', legend = c('Underexpressed', 'Overexpressed'), fill = c('lightblue', 'pink'))
-
-# repeat after changing levels
-ig = f_igCalculateVertexSizesAndColors(ig, t(mCounts), fG, bColor = T, iSize = 40)
-n = V(ig)$name
-lab = f_dfGetGeneAnnotation(n)
-V(ig)$label = as.character(lab$SYMBOL)
-set.seed(1)
-plot(ig, layout=layout_with_fr)
-legend('topright', legend = c('Underexpressed', 'Overexpressed'), fill = c('lightblue', 'pink'))
-par(p.old)
-
-
 ## we can look at the problem from the other direction and look at clusters instead of genes
 # sample plots
 # mean expression of groups in every cluster
-plot.mean.expressions(oGr, t(mCounts), fGroups, legend.pos = 'topright', main='Total Change in Each Cluster')
+par(p.old)
+plot.mean.expressions(oGr, t(mCounts), fGroups, legend.pos = 'bottomleft', main='Total Change in Each Cluster', cex.axis=0.7)
 # only significant clusters
 par(mar=c(7, 3, 2, 2)+0.1)
 plot.significant.expressions(oGr, t(mCounts), fGroups, main='Significant Clusters', lwd=1, bStabalize = T, cex.axis=0.7)
+# principal component plots
 pr.out = plot.components(oGr, t(mCounts), fGroups, bStabalize = T)
 par(mar=c(4,2,4,2))
 biplot(pr.out, cex=0.8, cex.axis=0.8, arrow.len = 0)
 # plot summary heatmaps
 # marginal expression level in each cluster
-plot.heatmap.significant.clusters(oGr, t(mCounts), fGroups, bStabalize = T)
-
+plot.heatmap.significant.clusters(oGr, t(mCounts), fGroups, bStabalize = F)
 # plot variance of cluster
 m = getSignificantClusters(oGr, t(mCounts), fGroups)$clusters
-plot.cluster.variance(oGr, m[c('1280218', '1280215'),], fGroups)
+m = getClusterMarginal(oGr, t(mCounts))
 
-plot.cluster.variance(oGr, m[csClust[i:(i+1)],], fGroups); i = i+2
+csClust = rownames(m)
+length(csClust)
+i = 1
+plot.cluster.variance(oGr, m[csClust[i:(i+1)],], fGroups, log = FALSE); i = i+2
 
+i = 1
+temp = t(as.matrix(m[csClust[i],]))
+rownames(temp) = csClust[i]
+plot.cluster.variance(oGr, temp, fGroups, log=FALSE); i = i+1
 
-#### plot a graph of top clusters clusters 
-m = getSignificantClusters(oGr, t(mCounts), fGroups)
-dfCluster = getClusterMapping(oGr)
-colnames(dfCluster) = c('gene', 'cluster')
-rownames(dfCluster) = dfCluster$gene
-# how many genes in each cluster
-sort(table(dfCluster$cluster))
-csClust = names(sort(table(dfCluster$cluster), decreasing = T))
-csClust = csClust[csClust %in% rownames(m)]
-#csClust = rownames(m$clusters)
+boxplot.cluster.variance(oGr, m, fGroups, log=T, iDrawCount = length(csClust), las=2)
 
-# plot these genes 
-# plot for each factor level
+# Various plots for one cluster of choice
+csClust = '1280215'
+
 lev = levels(fGroups)[-1]
 m = mCounts
-m = apply(m, 2, function(x) f_ivStabilizeData(x, fGroups))
-rownames(m) = rownames(mCounts)
+#m = apply(m, 2, function(x) f_ivStabilizeData(x, fGroups))
+#rownames(m) = rownames(mCounts)
 par(mar=c(1,1,1,1)+0.1)
 for(i in 1:length(lev)){
   ig = getClusterSubgraph(oGr, csClust)
   fG = factor(fGroups, levels= c(levels(fGroups)[1], lev[-i], lev[i]) )
-  ig = f_igCalculateVertexSizesAndColors(ig, t(m), fG, bColor = T, iSize=50)
+  ig = f_igCalculateVertexSizesAndColors(ig, t(m), fG, bColor = T, iSize=60)
   n = V(ig)$name
   lab = f_dfGetGeneAnnotation(n)
   V(ig)$label = as.character(lab$SYMBOL)
   set.seed(1)
-  plot(ig, vertex.label.cex=0.14, layout=layout_with_fr, vertex.frame.color='darkgrey', edge.color='lightgrey', 
-       main=paste(lev[i], 'vs UINC'))
+  plot(ig, vertex.label.cex=0.7, layout=layout_with_fr, vertex.frame.color='darkgrey', edge.color='lightgrey',
+       main=paste(lev[i], 'vs', levels(fGroups)[1]))
   legend('topright', legend = c('Underexpressed', 'Overexpressed'), fill = c('lightblue', 'pink'))
 }
 
-dfCluster = dfCluster[dfCluster$cluster %in% csClust,]
-df = f_dfGetGeneAnnotation(as.character(dfCluster$gene))
-dfCluster = cbind(dfCluster[as.character(df$ENTREZID),], SYMBOL=df$SYMBOL, GENENAME=df$GENENAME)
-write.csv(dfCluster, file='Results/Top_Clusters_HJ_Habibi_200213_Apr13_UINC_vs_SymptomsAndDays.csv')
-
-### Graphs of clusters
-# get clusters of choice to make subplots
-sort(table(dfCluster$cluster))
-
-# plot one cluster of choice
-# plot one cluster of choice
-csClust = c('1280218')
-set.seed(1)
+# heatmap of the genes
 ig.sub = getClusterSubgraph(oGr, csClustLabel = csClust)
-#ig.sub = f_igCalculateVertexSizesAndColors(ig.sub, t(mCounts), fGroups, bColor = T, iSize = 50)
 n = f_dfGetGeneAnnotation(V(ig.sub)$name)
-# V(ig.sub)[n$ENTREZID]$label = n$SYMBOL
-# plot(ig.sub, vertex.label.cex=0.7, layout=layout_with_fr)
-# # switch grouping levels
-# ig.sub = f_igCalculateVertexSizesAndColors(ig.sub, t(mCounts), fG, bColor = T, iSize = 50)
-# set.seed(1)
-# plot(ig.sub, vertex.label.cex=0.7, layout=layout_with_fr)
-
 mC = t(mCounts)
 mC = mC[n$ENTREZID,]
 rownames(mC) = n$SYMBOL
-mC = t(mC)
-mC = apply(mC, 2, function(x) f_ivStabilizeData(x, fGroups))
-rownames(mC) = rownames(mCounts)
-mC = t(mC)
 mC = t(scale(t(mC)))
 # threshhold the values
 mC[mC < -3] = -3
@@ -560,4 +443,48 @@ aheatmap(mC, color=c('blue', 'black', 'red'), breaks=0, scale='none', Rowv = hc,
          annColors=NA, Colv=NA)
 
 
+# if we want to plot variance of one gene at a time
+n = f_dfGetGeneAnnotation(V(ig.sub)$name)
+mC = t(mCounts)
+mC = mC[n$ENTREZID,]
+rownames(mC) = n$SYMBOL
+rn = rownames(mC)
+length(rn)
+i = 1
 
+par(p.old)
+par(mfrow=c(3,3))
+boxplot.cluster.variance(oGr, (mC), fGroups, iDrawCount = length(rn))
+temp = t(as.matrix(mC[rn[i],]))
+rownames(temp) = rn[i]
+plot.cluster.variance(oGr, temp, fGroups, log=FALSE); i = i+1
+
+
+### plot all clusters in graph
+dfCluster = getClusterMapping(oGr)
+colnames(dfCluster) = c('gene', 'cluster')
+rownames(dfCluster) = dfCluster$gene
+# how many genes in each cluster
+sort(table(dfCluster$cluster))
+#csClust = rownames(m$clusters)
+csClust = as.character(unique(dfCluster$cluster))
+
+
+# plot the graphs at each contrast
+lev = levels(fGroups)[-1]
+m = mCounts
+#m = apply(m, 2, function(x) f_ivStabilizeData(x, fGroups))
+#rownames(m) = rownames(mCounts)
+par(mar=c(1,1,1,1)+0.1)
+for(i in 1:length(lev)){
+  ig = getClusterSubgraph(oGr, csClust)
+  fG = factor(fGroups, levels= c(levels(fGroups)[1], lev[-i], lev[i]) )
+  ig = f_igCalculateVertexSizesAndColors(ig, t(m), fG, bColor = T, iSize=30)
+  n = V(ig)$name
+  lab = f_dfGetGeneAnnotation(n)
+  V(ig)$label = as.character(lab$SYMBOL)
+  set.seed(1)
+  plot(ig, vertex.label.cex=0.14, layout=layout_with_fr, vertex.frame.color='darkgrey', edge.color='lightgrey',
+       main=paste(lev[i], 'vs', levels(fGroups)[1]))
+  legend('topright', legend = c('Underexpressed', 'Overexpressed'), fill = c('lightblue', 'pink'))
+}
