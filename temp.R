@@ -1,3 +1,15 @@
+g1 = as.numeric(dfDat[2,2:24])
+dat = data.frame(g1, fGroups)
+
+l = f_lsimpost(g1[fGroups == 'Inf'])
+
+rnorm(1, median(l$mu), sqrt(median(l$var)))
+simpost(g1[fGroups == 'Inf'])
+
+
+
+
+
 dfui.7 = read.csv(file.choose(), header = T, row.names=1)
 dfui.10 = read.csv(file.choose(), header = T, row.names=1)
 dfui.28 = read.csv(file.choose(), header = T, row.names=1)

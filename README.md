@@ -20,4 +20,6 @@ clustering was performed, with various summary plots, particularly the top genes
 Same dataset as HJ_Habibi_200213_Apr13_No.R, however the grouping factor was Symptoms based on viral load. 
 
 
+# aggie_pcr.R
+Analysis of some qpcr ct values, and generating missing data using a posterior predictive distribution and non-informative prior.
 
