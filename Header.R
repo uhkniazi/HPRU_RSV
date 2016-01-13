@@ -71,5 +71,24 @@ f_lGetPCAClusterCount = function(pr.out){
 }
 
 
+f_plotVolcano = function(dfGenes, main, p.adj.cut = 0.1, fc.lim = c(-3, 3)){
+  p.val = -1 * log10(dfGenes$P.Value)
+  fc = dfGenes$logFC
+  # cutoff for p.value y.axis
+  y.cut = -1 * log10(0.01)
+  col = rep('lightgrey', times=length(p.val))
+  c = which(dfGenes$adj.P.Val < p.adj.cut)
+  col[c] = 'red'
+  plot(fc, p.val, pch=20, xlab='Fold Change', ylab='-log10 P.Value', col=col, main=main, xlim=fc.lim)
+  abline(v = 0, col='grey', lty=2)
+  abline(h = y.cut, col='red', lty=2)
+  # second cutoff for adjusted p-values
+  y.cut = quantile(p.val[c], probs=0.95)
+  abline(h = y.cut, col='red')
+  # identify these genes
+  g = which(p.val > y.cut)
+  lab = dfGenes[g, 'SYMBOL']
+  text(dfGenes$logFC[g], y = p.val[g], labels = lab, pos=2, cex=0.6)
+}
 
 ######################### end functions
