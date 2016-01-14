@@ -174,11 +174,11 @@ iSelGroups = temp3[,'cp']
 
 # select groups of choice
 #iSelGroups = c(1, 4, 21, 39, 45, 65, 66, 67, 70, 73, 74, 75, 77, 78, 79)
-rn = rownames(mCommonGenes.grp[cp %in% iSelGroups[c(1, 3, 4)],])
-m1 = mDat[rn,]
-df.rn = select(lumiHumanAll.db, keys = rn, columns = c('ENTREZID', 'SYMBOL', 'GENENAME'), keytype = 'PROBEID')
-# write csv to look at gene list
-write.csv(df.rn[,-1], file=paste('Temp/', 'NoCold3.5and7.10', '.csv', sep=''))
+# rn = rownames(mCommonGenes.grp[cp %in% iSelGroups[c(1, 3, 4)],])
+# m1 = mDat[rn,]
+# df.rn = select(lumiHumanAll.db, keys = rn, columns = c('ENTREZID', 'SYMBOL', 'GENENAME'), keytype = 'PROBEID')
+# # write csv to look at gene list
+# write.csv(df.rn[,-1], file=paste('Temp/', 'NoCold3.5and7.10', '.csv', sep=''))
 
 ## choose appropriate combination
 # ## common between 
@@ -244,7 +244,7 @@ for (i in seq_along(n)) {
 cvGenes = rownames(mCommonGenes)
 dfGenes = select(lumiHumanAll.db, keys = cvGenes, columns = c('ENTREZID', 'SYMBOL', 'GENENAME', 'UNIPROT'), keytype = 'PROBEID')
 dfGenes = na.omit(dfGenes)
-dfGenes = dfGenes[!duplicated(dfGenes$ENTREZID),]
+#dfGenes = dfGenes[!duplicated(dfGenes$ENTREZID),]
 
 # get reactome data
 url = 'http://www.reactome.org/download/current/UniProt2Reactome_All_Levels.txt'
@@ -265,27 +265,29 @@ dfGraph = na.omit(dfGraph)
 
 # get expression data
 # separate the factor and the count matrix
-rownames(dfGenes) = dfGenes$PROBEID
-mCounts = mDat[rownames(dfGenes),]
-rownames(mCounts) = dfGenes$ENTREZID
+#rownames(dfGenes) = dfGenes$PROBEID
+mCounts = mDat[unique(dfGenes$PROBEID),]
+# map the probe names to enterez ids
+i = match(rownames(mCounts), dfGenes$PROBEID)
+rownames(mCounts) = dfGenes$ENTREZID[i]
 fGroups = as.character(fSamples)
 # select only the groups with significant genes
 n = (which(sapply(lSigGenes.adj, length) >= 20)) + 1
 i = which(fSamples %in% levels(fSamples)[c(1, n)])
 fGroups = factor(fGroups[i], levels = levels(fSamples)[c(1, n)])
 
-# merge the groups together
-fGroups.2 = rep(NA, length(fGroups))
-i = grep('UINC', fGroups)
-fGroups[i]
-fGroups.2[i] = 'UINC'
-i = grep('^NoCold', fGroups)
-fGroups[i]
-fGroups.2[i] = 'NoCold'
-i = grep('^Cold', fGroups)
-fGroups[i]
-fGroups.2[i] = 'Cold'
-fGroups = factor(fGroups.2, levels = c('UINC', 'NoCold', 'Cold'))
+# # merge the groups together
+# fGroups.2 = rep(NA, length(fGroups))
+# i = grep('UINC', fGroups)
+# fGroups[i]
+# fGroups.2[i] = 'UINC'
+# i = grep('^NoCold', fGroups)
+# fGroups[i]
+# fGroups.2[i] = 'NoCold'
+# i = grep('^Cold', fGroups)
+# fGroups[i]
+# fGroups.2[i] = 'Cold'
+# fGroups = factor(fGroups.2, levels = c('UINC', 'NoCold', 'Cold'))
 
 # subset the count matrix
 n = (which(sapply(lSigGenes.adj, length) >= 20)) + 1
@@ -306,7 +308,7 @@ levels(fGroups)
 mCor = cor(mCounts)
 
 # check distribution 
-hist(sample(mCor, 1000, replace = F), prob=T, main='Correlation of genes', xlab='', family='Arial', breaks=20, xaxt='n')
+hist(mCor, prob=T, main='Correlation of genes', xlab='', family='Arial', breaks=20, xaxt='n')
 axis(1, at = seq(-1, 1, by=0.1), las=2)
 
 # stabalize the data and check correlation again
@@ -318,12 +320,12 @@ rownames(mCounts.st) = fGroups
 # create a correlation matrix
 mCor = cor(mCounts.st)
 # check distribution 
-hist(sample(mCor, 1000, replace = F), prob=T, main='Correlation of genes', xlab='', family='Arial', breaks=20, xaxt='n')
+hist(mCor, prob=T, main='Correlation of genes', xlab='', family='Arial', breaks=20, xaxt='n')
 axis(1, at = seq(-1, 1, by=0.1), las=2)
 
 # create the graph cluster object
 # using absolute correlation vs actual values lead to different clusters
-oGr = CGraphClust(dfGraph, abs(mCor), iCorCut = 0.75, bSuppressPlots = F)
+oGr = CGraphClust(dfGraph, abs(mCor), iCorCut = 0.6, bSuppressPlots = F)
 
 ## general graph structure
 set.seed(1)
@@ -386,8 +388,14 @@ plot.cluster.variance(oGr, temp, fGroups, log=FALSE); i = i+1
 
 boxplot.cluster.variance(oGr, m, fGroups, log=T, iDrawCount = length(csClust), las=2)
 
+i = which(dfReactome.sub$V2 %in% csClust)
+dfCluster.name = dfReactome.sub[i,c('V2', 'V4')]
+dfCluster.name = dfCluster.name[!duplicated(dfCluster.name$V2),]
+rownames(dfCluster.name) = NULL
+dfCluster.name
+
 # Various plots for one cluster of choice
-csClust = '1280215'
+csClust = '168249'
 
 lev = levels(fGroups)[-1]
 m = mCounts
@@ -433,7 +441,7 @@ length(rn)
 i = 1
 
 par(p.old)
-par(mfrow=c(3,3))
+par(mfrow=c(1,2))
 boxplot.cluster.variance(oGr, (mC), fGroups, iDrawCount = length(rn))
 temp = t(as.matrix(mC[rn[i],]))
 rownames(temp) = rn[i]
