@@ -39,7 +39,13 @@ i = grepl('^Uninfected$', x = oExp.lumi$Symptoms)
 g = grepl('^0$', oExp.lumi$Day)
 i = g | i
 ## OR
+i = grepl('^Asymptomatic, infected$', x = oExp.lumi$Symptoms)
+g = grepl('^0$', oExp.lumi$Day)
+i = g | i
 ## OR
+i = grepl('^Clinical cold$', x = oExp.lumi$Symptoms)
+g = grepl('^0$', oExp.lumi$Day)
+i = g | i
 
 # select data matrix and remove genes with low detection call
 ivDetection = detectionCall(oExp.lumi)
@@ -130,7 +136,7 @@ n = (which(sapply(lSigGenes.adj, length) >= 10)) + 1
 
 for (i in seq_along(n)) {
   dfGenes = topTable(fit, coef = n[i], number = Inf)
-  f_plotVolcano(dfGenes, paste(names(n[i])), fc.lim = c(-1.5, 1.5))
+  f_plotVolcano(dfGenes, paste(names(n[i])), fc.lim = c(-2.5, 2.5))
 }
 
 ###### HeatMaps
@@ -168,9 +174,9 @@ temp = (temp[!duplicated(cp),])
 temp2 = cbind(temp, table(cp))
 rownames(temp2) = NULL
 print(temp2)
-## choose groups where there are at least 10 genes
-temp3 = temp2[which(temp2[,9] >= 10),]
-iSelGroups = temp3[,'cp']
+# ## choose groups where there are at least 10 genes
+# temp3 = temp2[which(temp2[,9] >= 10),]
+# iSelGroups = temp3[,'cp']
 
 # select groups of choice
 #iSelGroups = c(1, 4, 21, 39, 45, 65, 66, 67, 70, 73, 74, 75, 77, 78, 79)
@@ -231,7 +237,7 @@ for (i in seq_along(n)) {
   dfGenes = topTable(fit, coef = n[i], number = Inf)
   dfGenes.2 = dfGenes[lSigGenes.adj[[names(n[i])]],]
   rownames(dfGenes.2) = NULL
-  f = paste('Results/', 'Significant_genes_at_10pcFDR_UI', names(n[i]), '.csv', sep='')
+  f = paste('Results/', 'Significant_genes_at_10pcFDR_Cold', names(n[i]), '.csv', sep='')
   dfGenes.2 = dfGenes.2[,c(2, 3, 4, 5, 6, 8, 9)]
   write.csv(dfGenes.2, file=f)
 }
@@ -272,7 +278,7 @@ i = match(rownames(mCounts), dfGenes$PROBEID)
 rownames(mCounts) = dfGenes$ENTREZID[i]
 fGroups = as.character(fSamples)
 # select only the groups with significant genes
-n = (which(sapply(lSigGenes.adj, length) >= 20)) + 1
+n = (which(sapply(lSigGenes.adj, length) >= 30)) + 1
 i = which(fSamples %in% levels(fSamples)[c(1, n)])
 fGroups = factor(fGroups[i], levels = levels(fSamples)[c(1, n)])
 
@@ -290,7 +296,7 @@ fGroups = factor(fGroups[i], levels = levels(fSamples)[c(1, n)])
 # fGroups = factor(fGroups.2, levels = c('UINC', 'NoCold', 'Cold'))
 
 # subset the count matrix
-n = (which(sapply(lSigGenes.adj, length) >= 20)) + 1
+n = (which(sapply(lSigGenes.adj, length) >= 30)) + 1
 i = which(fSamples %in% levels(fSamples)[c(1, n)])
 mCounts = mCounts[,i]
 colnames(mCounts) = fGroups
@@ -356,6 +362,35 @@ plot.centrality.diagnostics(oGr)
 
 # get the centrality parameters
 mCent = mPrintCentralitySummary(oGr)
+
+dfTopGenes.cent = dfGetTopVertices(oGr, iQuantile = 0.90)
+rownames(dfTopGenes.cent) = dfTopGenes.cent$VertexID
+# assign metadata annotation to these genes and clusters
+dfCluster = getClusterMapping(oGr)
+colnames(dfCluster) = c('gene', 'cluster')
+rownames(dfCluster) = dfCluster$gene
+df = f_dfGetGeneAnnotation(as.character(dfTopGenes.cent$VertexID))
+dfTopGenes.cent = cbind(dfTopGenes.cent[as.character(df$ENTREZID),], SYMBOL=df$SYMBOL, GENENAME=df$GENENAME)
+dfCluster = dfCluster[as.character(dfTopGenes.cent$VertexID),]
+dfTopGenes.cent = cbind(dfTopGenes.cent, Cluster=dfCluster$cluster)
+
+dir.create('Results', showWarnings = F)
+write.csv(dfTopGenes.cent, file='Results/Top_Centrality_Genes.csv')
+
+## if we want to look at the expression profiles of the top genes
+# plot a heatmap of these top genes
+library(NMF)
+m1 = mCounts[,as.character(dfTopGenes.cent$VertexID)]
+m1 = scale(m1)
+m1 = t(m1)
+# threshhold the values
+m1[m1 < -3] = -3
+m1[m1 > 3] = 3
+rownames(m1) = as.character(dfTopGenes.cent$SYMBOL)
+# draw the heatmap  color='-RdBu:50'
+aheatmap(m1, color=c('blue', 'black', 'red'), breaks=0, scale='none', Rowv = TRUE, 
+         annColors=NA, Colv=NA)
+
 
 ## we can look at the problem from the other direction and look at clusters instead of genes
 # sample plots
