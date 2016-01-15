@@ -1,3 +1,36 @@
+x.uninf = uninfected[[3]][,'4600']
+f.uninf = uninfected[[2]]
+x.cold = cold[[3]][,'4600']
+f.cold = cold[[2]]
+boxplot(x.uninf ~ f.uninf)
+boxplot(x.cold ~ f.cold)
+
+source('../CCrossValidation/CCrossValidation.R')
+fGroups.bk = fGroups
+fGroups = as.character(fGroups)
+i = which(fGroups == 'UI7.10')
+fGroups[i] = 'D0'
+i = which(fGroups != 'D0')
+fGroups[i] = 'Cold'
+
+g = as.character(dfTopGenes.cent$VertexID)
+mDat = mCounts[,g]
+
+test = sample(1:length(fGroups), size = length(fGroups)*0.2, replace = F)
+dfData = as.data.frame(mDat)
+fGroups = factor(fGroups, levels=c('D0', 'Cold'))
+
+oVar.r = CVariableSelection.RandomForest(dfData[-test,], fGroups[-test])
+plot.var.selection(oVar.r)
+
+dfRF = CVariableSelection.RandomForest.getVariables(oVar.r)
+
+cvTopGenes = rownames(dfRF)[1:30]
+cvTopGenes = gsub('X(\\d+)', '\\1', cvTopGenes)
+
+dfData.2 = dfData[,colnames(dfData) %in% cvTopGenes]
+oVar.sub = CVariableSelection.ReduceModel(dfData.2, fGroups, boot.num = 10)
+
 g1 = as.numeric(dfDat[2,2:24])
 dat = data.frame(g1, fGroups)
 
