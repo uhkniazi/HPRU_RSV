@@ -102,46 +102,12 @@ colnames(dfDat.new) = c('fGroups', rownames(dfDat))
 
 
 
-# # draw a heatmap of the data
-# library(NMF)
-# source('../CGraphClust/CGraphClust.R')
-# 
-# m1 = as.matrix(dfDat.new)
-# colnames(m1) = fGroups
-# m1 = na.omit(m1)
-# 
-# mCounts = t(m1)
-# mCounts = scale(mCounts)
-# mCounts = t(mCounts)
-# # threshhold the values
-# mCounts[mCounts < -3.5] = -3.5
-# mCounts[mCounts > 3.5] = 3.5
-# 
-# # draw the heatmap  color='-RdBu:50'
-# aheatmap(mCounts, color=c('blue', 'black', 'red'), breaks=0, scale='none', Rowv = TRUE, 
-#          annColors=NA, Colv=NA)
-# 
-# # repeat after smoothing
-# m1 = t(apply(m1, 1, function(x) f_ivStabilizeData(x, fGroups)))
-# colnames(m1) = fGroups
-# 
-# mCounts = t(m1)
-# mCounts = scale(mCounts)
-# mCounts = t(mCounts)
-# # threshhold the values
-# mCounts[mCounts < -3.5] = -3.5
-# mCounts[mCounts > 3.5] = 3.5
-# 
-# # draw the heatmap  color='-RdBu:50'
-# aheatmap(mCounts, color=c('blue', 'black', 'red'), breaks=0, scale='none', Rowv = TRUE, 
-#          annColors=NA, Colv=NA)
-
-
 # any of the p.values significant under anova
 m1 = as.matrix(dfDat.new[,2:ncol(dfDat.new)])
 p.ano = apply(m1, 2, function(x) anova(lm(x ~ fGroups))$Pr[1])
 p.adj = p.adjust(p.ano, 'bonf')
 table((p.adj < 0.05))
+table(p.ano < 0.05)
 
 ## pairwise t.test
 p = apply(m1, 2, function(x) {
@@ -150,40 +116,53 @@ p = apply(m1, 2, function(x) {
   # check if any particular group is too small
   fr = which(table(df$fGroups) < 2)
   i = which(df$fGroups %in% names(fr))
-  p.val = (pairwise.t.test(df$x[-i], df$fGroups[-i], p.adjust.method = 'bonf')$p.value)
+  p.val = (pairwise.t.test(df$x[-i], df$fGroups[-i], p.adjust.method = 'none')$p.value)
   return(any(p.val < 0.05))
 })
 table(p)
-i = which(p == TRUE)
-x = m1[,i]
-df = data.frame(x, fGroups)
-df = na.omit(df)
+i = which(p == TRUE | p.ano < 0.05)
 
-boxplot(x ~ fGroups, main=names(i))
-table(df$fGroups)
+sapply(seq_along(i), function(y){
+  x = m1[,i[y]]
+  df = data.frame(x, fGroups)
+  df = na.omit(df)
+  boxplot(df$x ~ df$fGroups, main=names(i)[y], las=2)
+})
+
 
 ## PCA plot for the data
+m1 = m1[,i]
 f = colSums(m1)
 f = is.na(f)
+table(f)
 # remove data with NA
 mCounts = m1[,!f]
 # scale the data
 mCounts = scale(mCounts)
 f = colSums(mCounts)
 f = is.finite(f)
+table(f)
 # remove data with NAN
 mCounts = mCounts[,f]
-
-
-
-
-m = na.omit(scale(mCounts))
-pr.out = prcomp(m, scale=F)
-biplot(pr.out)
-mCounts = t(scale(mCounts))
-
+rownames(mCounts) = fGroups
 pr.out = prcomp(mCounts, scale=F)
 biplot(pr.out)
+fSamples = fDays
+fSamples = fStatus
+fSamples = fGroups
+col.p = rainbow(length(unique(fSamples)))
+col = col.p[as.numeric(fSamples)]
+# plot the pca components
+p.old = par(mfrow=c(2,2))
+plot.new()
+legend('center', legend = unique(fSamples), fill=col.p[as.numeric(unique(fSamples))])
+plot(pr.out$x[,1:2], col=col, pch=19, xlab='Z1', ylab='Z2',
+     main='PCA comp 1 and 2')
+plot(pr.out$x[,c(1,3)], col=col, pch=19, xlab='Z1', ylab='Z3',
+     main='PCA comp 1 and 3')
+plot(pr.out$x[,c(2,3)], col=col, pch=19, xlab='Z2', ylab='Z3',
+     main='PCA comp 2 and 3')
+par(p.old)
 
 d = dist(mCounts)
 hc = hclust(d)
