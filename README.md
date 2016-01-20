@@ -23,3 +23,6 @@ Same dataset as HJ_Habibi_200213_Apr13_No.R, however the grouping factor was Sym
 # aggie_pcr.R
 Analysis of some qpcr ct values, and generating missing data using a posterior predictive distribution and non-informative prior.
 
+# HJ_Habibi_200213_Apr13_Analysis10.R and Analysis11
+Both the analyses are similar, but we remove asymptomatic infected in analysis11 and do a joint analysis.  
+see https://www.evernote.com/shard/s288/nl/38698211/b308257b-2786-4e94-8b7e-485ac12272e2 and end of report for analysis 11.
