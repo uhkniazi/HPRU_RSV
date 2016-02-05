@@ -21,7 +21,10 @@ table(fDays)
 head(fDays)
 
 xtabs(~ fStatus + fDays)
-fGroups = factor(paste0(fStatus, fDays))
+fGroups = (paste0(fStatus, fDays))
+fGroups = gsub('\\w+0', '0Base', fGroups)
+fGroups = factor(fGroups)
+
 ftable(fDays, fStatus, fGroups)
 
 # assign unique names to genes
@@ -101,7 +104,7 @@ for(i in 1:nrow(dfDat)){
 colnames(dfDat.new) = c('fGroups', rownames(dfDat))
 
 
-
+m1 = t(as.matrix(dfDat)) # if not using simulated data
 # any of the p.values significant under anova
 m1 = as.matrix(dfDat.new[,2:ncol(dfDat.new)])
 p.ano = apply(m1, 2, function(x) anova(lm(x ~ fGroups))$Pr[1])

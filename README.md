@@ -26,3 +26,7 @@ Analysis of some qpcr ct values, and generating missing data using a posterior p
 # HJ_Habibi_200213_Apr13_Analysis10.R and Analysis11
 Both the analyses are similar, but we remove asymptomatic infected in analysis11 and do a joint analysis.  
 see https://www.evernote.com/shard/s288/nl/38698211/b308257b-2786-4e94-8b7e-485ac12272e2 and end of report for analysis 11.
+
+# HJ_Habibi_040913_Sep13_Analysis1_2.R
+Analysis 1 for the second data set. Details here: https://www.evernote.com/shard/s288/nl/38698211/43a5359b-fce7-4dad-8b92-36a75e4b4623
+
