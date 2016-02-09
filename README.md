@@ -30,3 +30,8 @@ see https://www.evernote.com/shard/s288/nl/38698211/b308257b-2786-4e94-8b7e-485a
 # HJ_Habibi_040913_Sep13_Analysis1_2.R
 Analysis 1 for the second data set. Details here: https://www.evernote.com/shard/s288/nl/38698211/43a5359b-fce7-4dad-8b92-36a75e4b4623
 
+# HJ_Habibi_Joint_Apr13_Sep13_import.R
+import and merging of the 2 data sets using combat
+
+# HJ_Habibi_Joint_Apr13_Sep13_Analysis1.R
+analysis of the joint data set, with graph analysis and some variable selection for class prediction and roc curves.
