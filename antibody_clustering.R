@@ -68,7 +68,50 @@ lda.fit = lda(fGroups ~ ., data=dfFit)
 plot(lda.fit)
 
 write.csv(dfData, file='Results/antibody_grouping.csv')
-##################### if using only the first serum parameter
+##################### 
+
+##################################### second subgrouping based on outcome and symptoms
+dfOutcome = read.csv('Data_external/Serology data/outcome.csv', header=T, stringsAsFactors=F)
+# remove some duplicates
+f = duplicated(as.character(dfOutcome$PID))
+dfOutcome = dfOutcome[!f,]
+rownames(dfOutcome) = dfOutcome$PID
+
+dfOutcome.sub = dfOutcome[rownames(dfData),]
+dfData$Outcome = dfOutcome.sub$Outcome
+dfData$Symptoms = dfOutcome.sub$Symptoms
+## 
+
+### examine expressions
+fGroups = factor(paste0(dfData$fGroups, dfData$Symptoms))
+mData = as.matrix(dfData[,3:5])
+
+sapply(1:3, function(x){
+  boxplot(mData[,x] ~ fGroups, main=colnames(mData)[x])
+  print(pairwise.t.test(mData[,x], g = fGroups, p.adjust.method = 'bonf'))
+})
+
+mData.sc = scale(mData)
+
+names(fGroups) = rownames(mData)
+fGroups.or = fGroups[order(fGroups)]
+mData.sc = mData.sc[order(fGroups),]
+matplot(mData.sc[,2:3], type='l', lty=1, xaxt='n', xlab='', ylab='Scaled Data', 
+        main='Antibody titers fold change at Day 28')
+axis(1, 1:nrow(mData.sc), labels = paste0(rownames(mData.sc), fGroups.or), las=2, cex.axis=0.8)
+legend('topright', legend = c('Nasal.RSV', 'Nasal.F'), lty=1, col=1:2)
+
+
+
+
+
+
+
+dfData.mod = data.frame(Year=factor(dfData$Year), Nasal.RSV=dfData$Nasal.RSV.IgA.fold.change.d28, 
+                        Nasal.F=dfData$Nasal.F.IgA.fold.change.d28, Symptoms=factor(dfData$Symptoms), 
+                        fGroups=dfData$fGroups)
+
+
 
 
 

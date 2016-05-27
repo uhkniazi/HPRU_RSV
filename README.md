@@ -1,6 +1,21 @@
 # HPRU_RSV
 RSV challenge data analysis
 
+# HJ_Habibi_040913_Sep13_Analysis1_2.R
+Sep 2013 dataset
+
+# HJ_Habibi_Joint_Apr13_Sep13_import.R
+Joint analysis of both april and september datasets, merging using Combat.
+## HJ_Habibi_Joint_Apr13_Sep13_Analysis1.R
+Main analysis after creating joint lumi object
+
+# viral_load_clustering.R, antibody_clustering.R
+Scripts to cluster the data based on viral load or antibody responses, in order to define groupings for the microarray analysis.  
+
+
+
+
+# Redundant_Scripts
 # HJ_Habibi_200213_Apr13_No.R
 Dataset 1, /home/uniazi/Data/R/HPRU_RSV/Data_external/Original/RSV_Challenge_for_Umar/RSV_Expt 1_Training Set_parameters.csv  
 The following steps are done for analysis:  
