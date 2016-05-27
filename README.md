@@ -11,7 +11,11 @@ Main analysis after creating joint lumi object
 
 # viral_load_clustering.R, antibody_clustering.R
 Scripts to cluster the data based on viral load or antibody responses, in order to define groupings for the microarray analysis.  
+https://www.evernote.com/shard/s288/nl/38698211/e9c026fa-1e40-4389-814f-b9e5a1bc50e8?title=New%20Groupings%20with%20PCR%20Results
 
+# antibody_clustering_inf_uninf.R
+extension of the antibody_clustering.R script with both infected and uninfected groups, and creating AB1, AB2, AB3 groups.  
+https://www.evernote.com/shard/s288/nl/38698211/16a94625-014e-46d2-96dc-eef8872ed29c?title=Antibody%20clustering%2C%20infected%20and%20uninfected  
 
 
 
