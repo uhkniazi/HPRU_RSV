@@ -148,6 +148,7 @@ library(sva)
 modcombat = model.matrix(~1, data=pData(x.affy))
 oCexp = ComBat(exprs(x.affy), batch = fBatch, mod=modcombat)
 m = oCexp
+pr.out = prcomp(t(m), scale=T)
 fSamples = as.factor(x.affy$timepoint)
 fSamples = fBatch
 col.p = rainbow(length(unique(fSamples)))
