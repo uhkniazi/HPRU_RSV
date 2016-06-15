@@ -122,21 +122,42 @@ temp2 = cbind(temp, table(cp))
 rownames(temp2) = NULL
 print(temp2)
 ## choose groups where there are at least  genes
-temp3 = temp2[which(temp2[,ncol(temp2)] >= 15),]
-# iSelGroups = temp3[,'cp']
-# 
-# # select groups of choice
-# #iSelGroups = c(1, 4, 21, 39, 45, 65, 66, 67, 70, 73, 74, 75, 77, 78, 79)
-# rn = rownames(mCommonGenes.grp)
-# rn = rownames(mCommonGenes.grp[cp == '3',])
-# #m1 = mDat[rn,]
-# df.rn = select(hgu133a2.db, keys = rn, columns = c('ENTREZID', 'SYMBOL', 'GENENAME'), keytype = 'PROBEID')
-# # write csv to look at gene list
-# write.csv(df.rn[,-1], file=paste('Temp/', 'commongenes', '.csv', sep=''))
+temp3 = temp2[which(temp2[,ncol(temp2)] >= 50),]
+#iSelGroups = temp3[,'cp']
+
+# select groups of choice
+#iSelGroups = c(1, 4, 21, 39, 45, 65, 66, 67, 70, 73, 74, 75, 77, 78, 79)
+#rn = rownames(mCommonGenes.grp)
+## early response genes
+rn = rownames(mCommonGenes.grp[cp %in% c(1, 2, 5),])
+#m1 = mDat[rn,]
+df.rn = select(hgu133a2.db, keys = rn, columns = c('ENTREZID', 'SYMBOL', 'GENENAME'), keytype = 'PROBEID')
+# write csv to look at gene list
+write.csv(df.rn[,-1], file=paste('Temp/', 'early_response_commongenes', '.csv', sep=''))
+
+rn = rownames(mCommonGenes.grp[cp %in% c(22, 25),])
+#m1 = mDat[rn,]
+df.rn = select(hgu133a2.db, keys = rn, columns = c('ENTREZID', 'SYMBOL', 'GENENAME'), keytype = 'PROBEID')
+# write csv to look at gene list
+write.csv(df.rn[,-1], file=paste('Temp/', 'mid_response_commongenes', '.csv', sep=''))
+
+rn = rownames(mCommonGenes.grp[cp %in% c(23, 26, 27, 28),])
+#m1 = mDat[rn,]
+df.rn = select(hgu133a2.db, keys = rn, columns = c('ENTREZID', 'SYMBOL', 'GENENAME'), keytype = 'PROBEID')
+# write csv to look at gene list
+write.csv(df.rn[,-1], file=paste('Temp/', 'late_response_commongenes', '.csv', sep=''))
+
+rn = rownames(mCommonGenes.grp[cp %in% c(3),])
+#m1 = mDat[rn,]
+df.rn = select(hgu133a2.db, keys = rn, columns = c('ENTREZID', 'SYMBOL', 'GENENAME'), keytype = 'PROBEID')
+# write csv to look at gene list
+write.csv(df.rn[,-1], file=paste('Temp/', 'early_to_late_response_commongenes', '.csv', sep=''))
 
 ## choose appropriate combination
-# ## common between 
-# i = which(mCommonGenes[,'NoCold0.1'] & mCommonGenes[,'Cold0.1'])
+# set the bit for comparisons
+# colnames(mCommonGenes)
+# bit = c(1, 1, 1, )
+# i = which(mCommonGenes[,1] & mCommonGenes[,2])
 # i = which(mCommonGenes[,'NoCold0.1'] | mCommonGenes[,'Cold0.1'])
 # i = which(mCommonGenes[,'NoCold0.1'] & !mCommonGenes[,'Cold0.1'])
 
@@ -261,7 +282,7 @@ axis(1, at = seq(-1, 1, by=0.1), las=2)
 
 # create the graph cluster object
 # using absolute correlation vs actual values lead to different clusters
-oGr = CGraphClust(dfGraph, abs(mCor), iCorCut = 0.7, bSuppressPlots = F)
+oGr = CGraphClust(dfGraph, abs(mCor), iCorCut = 0.6, bSuppressPlots = F)
 
 ## general graph structure
 set.seed(1)
