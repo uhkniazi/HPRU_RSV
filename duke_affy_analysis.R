@@ -41,6 +41,11 @@ design = model.matrix(~fSamples)
 colnames(design) = levels(fSamples)
 head(design)
 
+# ## correlations - treating people as random effects
+# corfit = duplicateCorrelation(x.affy, design, block = x.affy$subject_id)
+# 
+# fit = lmFit(mDat, design, block=x.affy$subject_id, correlation = corfit$consensus.correlation)
+
 fit = lmFit(mDat, design)
 fit = eBayes(fit)
 
