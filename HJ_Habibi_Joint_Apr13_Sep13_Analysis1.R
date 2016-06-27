@@ -7,7 +7,7 @@ source('Header.R')
 
 #### data loading
 ## the dataset created earlier in previous script
-load(file='Objects/lumi.n.Combined_Apr13_Sep13.rds')
+load(file='Objects/lumi.n.Combined_Apr13_Sep13_adjusted.rds')
 
 
 ## samples
@@ -284,7 +284,7 @@ axis(1, at = seq(-1, 1, by=0.1), las=2)
 
 # create the graph cluster object
 # using absolute correlation vs actual values lead to different clusters
-oGr = CGraphClust(dfGraph, abs(mCor), iCorCut = 0.7, bSuppressPlots = F)
+oGr = CGraphClust(dfGraph, abs(mCor), iCorCut = 0.6, bSuppressPlots = F)
 
 ## general graph structure
 set.seed(1)
@@ -304,6 +304,21 @@ ig = getFinalGraph(oGr)
 ig = f_igCalculateVertexSizesAndColors(ig, t(mCounts), fGroups, bColor = F, iSize = 20)
 plot(getCommunity(oGr), ig, vertex.label=NA, layout=layout_with_fr, 
      vertex.frame.color=NA, edge.color='darkgrey')
+
+# get community sizes
+dfCluster = getClusterMapping(oGr)
+colnames(dfCluster) = c('gene', 'cluster')
+rownames(dfCluster) = dfCluster$gene
+# how many genes in each cluster
+iSizes = sort(table(dfCluster$cluster))
+# remove communities smaller than 5 members or choose a size of your liking
+i = which(iSizes <= 5)
+if (length(i) > 0) {
+  cVertRem = as.character(dfCluster[dfCluster$cluster %in% names(i),'gene'])
+  iVertKeep = which(!(V(getFinalGraph(oGr))$name %in% cVertRem))
+  oGr = CGraphClust.recalibrate(oGr, iVertKeep)
+}
+
 
 ## centrality diagnostics
 # look at the graph centrality properties
