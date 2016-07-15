@@ -241,6 +241,7 @@ mCounts = mDat[unique(dfGenes$PROBEID),]
 i = match(rownames(mCounts), dfGenes$PROBEID)
 rownames(mCounts) = dfGenes$ENTREZID[i]
 fGroups = as.character(fSamples)
+names(fGroups) = x.affy$subject_id
 # select only the groups with significant genes
 n = (which(sapply(lSigGenes.adj, length) >= 10)) + 1
 i = which(fSamples %in% levels(fSamples)[c(1, n)])
@@ -250,9 +251,12 @@ fGroups = factor(fGroups[i], levels = levels(fSamples)[c(1, n)])
 n = (which(sapply(lSigGenes.adj, length) >= 10)) + 1
 i = which(fSamples %in% levels(fSamples)[c(1, n)])
 mCounts = mCounts[,i]
-colnames(mCounts) = fGroups
+colnames(mCounts) = names(fGroups)
 mCounts = mCounts[,order(fGroups)]
 fGroups = fGroups[order(fGroups)]
+# sanity check, if order and names of samples is same
+identical(names(fGroups), colnames(mCounts))
+colnames(mCounts) = as.character(fGroups)
 mCounts = t(mCounts)
 
 # select genes that have a reactome term attached
@@ -539,6 +543,28 @@ for(i in 1:length(lev)){
 #   nm = paste('Results/ltb_atb_data', lev[i], 'vs', levels(fGroups)[1], '.graphml', sep='')
 #   write.graph(ig, file = nm, format = 'graphml')
 # }
+
+
+################################################################
+#### plotting individual clusters
+mClust = getSignificantClusters(oGr, t(mCounts), fGroups)$clusters
+colnames(mClust) = names(fGroups)
+
+dfPlot = data.frame(x=mClust[1,], fGroups, id=factor(names(fGroups)))
+
+library(lattice)
+xyplot(x ~ fGroups | id, groups=id, data=dfPlot, type='o', las=2)
+
+
+
+
+
+
+
+
+
+
+
 
 
 ############################ variable selection
