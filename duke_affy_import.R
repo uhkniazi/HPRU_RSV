@@ -6,6 +6,16 @@
 source('Header.R')
 library(affy)
 
+################## changes to be made at some point
+lDetection = mas5calls(oData)
+p = assayData(lDetection)
+p = assayData(lDetection)[['se.exprs']]
+head(exprs(lDetection))
+head(exprs(lDetection))[1,1:10]
+p[1,1:10]
+
+
+
 
 #### data loading
 cvDir = getwd()
