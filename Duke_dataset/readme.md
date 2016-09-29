@@ -1,5 +1,10 @@
 Import and analysis of the ICL RSV Challenge dataset from Duke University.
 
+# Database entries  
+Project.ID = 3  
+Data.id = 5 (Duke dataset)  
+[Evernote link](https://www.evernote.com/shard/s288/nl/38698211/9dd55b6b-87ed-44eb-827c-96e897e8fb0a?title=00%20HPRU%20RSV "Private")
+
 # Scripts
 **In no particular order**  
 

@@ -39,6 +39,8 @@ pData(x.affy) = dfSamples
 
 # load symptoms data to set the covariates/predictors for the samples
 df = read.csv(file.choose(), header=T, stringsAsFactors=F)
+# keep only infected samples
+df = df[df$Outcome == 'Infected', ]
 # the infected samples that showed symptoms only
 table(dfSamples$subject_id %in% df$PID)
 
@@ -46,20 +48,28 @@ f = dfSamples$subject_id %in% df$PID
 # remove this missing sample from array object
 x.affy = x.affy[,f]
 dfSample = pData(x.affy)
+# add the additional covariates
+i = match(dfSample$subject_id, df$PID)
+dfSample$Outcome = df$Outcome[i]
+dfSample$Symptoms = df$Symptoms[i]
+
 library('RMySQL')
 db = dbConnect(MySQL(), user='rstudio', password='12345', dbname='Projects', host='127.0.0.1')
 dbListTables(db)
 cn = dbListFields(db, 'Sample')[-1]
-df = data.frame(3, 5, dfSample$subject_id, dfSample$cel_name, 'RSV Dataset Affymetrix Sample from Duke University for infected symptomatic at particular days',
-                dfSample$timepoint, dfSample$sample_id, 'Infected Symptomatic')
+df = data.frame(3, 5, dfSample$subject_id, dfSample$cel_name, 
+                'RSV Dataset Affymetrix Sample from Duke University for infected symptomatic and asymptomatic at particular days, covariates: timepoint, infection status, symptoms',
+                dfSample$timepoint, dfSample$Outcome, dfSample$Symptoms)
 colnames(df) = cn
 dbWriteTable(db, name = 'Sample', value=df, append=T, row.names=F)
+
+pData(x.affy) = dfSample
 
 # save the affymetrix object
 dbListTables(db)
 cn = dbListFields(db, 'MetaFile')[-1]
 n = make.names('oAffymetrixExpressionSet for RSV Duke Infected Symptomatic rds')
-df = data.frame(5, n, '.rds', '~/Data/MetaData/', 'RSV Dataset Affymetrix Sample from Duke University for infected symptomatic at particular days')
+df = data.frame(5, n, '.rds', '~/Data/MetaData/', 'RSV Dataset Affymetrix Sample from Duke University for infected symptomatic and asymptomatic at particular days, covariates: timepoint, infection status, symptoms')
 colnames(df) = cn
 n2 = paste0('Objects/', n)
 save(x.affy, file=n2)
