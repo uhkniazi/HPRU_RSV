@@ -77,17 +77,6 @@ mDat = mDat[!is.na(cvSym),]
 library(lme4)
 library(car)
 
-# #203882_at
-# x = mDat['203153_at',]
-# hist(x)
-# boxplot(x ~ fSamples)
-# df = data.frame(x, days=fSamples, id=dfSamples$subject_id)
-# str(df)
-# 
-# fm01 = lmer(x ~ days + (1|id), data=df, REML = F)
-# summary(fm01)
-# an = Anova(fm01)
-
 f_get.lme.pvalue = function(x, fac, ran){
   return(Anova(lmer(x ~ fac + (1|ran), REML = F))[[3]])
 }
@@ -127,19 +116,13 @@ lSigGenes.adj = vector('list', length = length(levels(fSamples))-1)
 names(lSigGenes.adj) = levels(fSamples)[2:length(levels(fSamples))]
 
 for (i in 2:length(levels(fSamples))){
-  #p.adj = p.adjust(fit$p.value[,i], method = 'BH')
   p.val = mFit.pval[i,]
-  #p.adj = p.adjust(p.val, method = 'BH')
-  #lSigGenes.adj[[i-1]] = names(p.adj)[p.adj < 0.1]
   lSigGenes.adj[[i-1]] = names(p.val)[p.val < 0.05]
 }
 
-#cvSigGenes.adj = unique(cvSigGenes.adj)
 sapply(lSigGenes.adj, length)
 
-
-###### HeatMaps
-# make heatmaps of top genes
+# grouping of genes based on expression trends
 n = (which(sapply(lSigGenes.adj, length) >= 10)) + 1
 cvCommonGenes = NULL
 for (i in seq_along(n)) {
@@ -166,29 +149,12 @@ length(unique(cp))
 
 mCommonGenes.grp = cbind(mCommonGenes.grp, cp)
 
-# ### print and observe this table and select the groups you are interested in
-# temp = mCommonGenes.grp
-# temp = (temp[!duplicated(cp),])
-# temp2 = cbind(temp, table(cp))
-# rownames(temp2) = NULL
-# print(temp2)
-# ## choose groups where there are at least  genes
-# temp3 = temp2[which(temp2[,ncol(temp2)] >= 50),]
-# #iSelGroups = temp3[,'cp']
-
-# select groups of choice
-#iSelGroups = c(1, 4, 21, 39, 45, 65, 66, 67, 70, 73, 74, 75, 77, 78, 79)
-#rn = rownames(mCommonGenes.grp)
-## early response genes
-#rn = rownames(mCommonGenes.grp[cp %in% c(1, 2, 5),])
 rn = apply(mCommonGenes, 1, function(x) any(x[c(1,2,3)] == c(T, T, T)))
 rn = names(rn[rn])
 df.rn = select(hgu133a2.db, keys = rn, columns = c('ENTREZID', 'SYMBOL', 'GENENAME'), keytype = 'PROBEID')
 # write csv to look at gene list
 write.csv(df.rn[,-1], file=paste('Temp/', 'early_response_commongenes', '.csv', sep=''))
 
-#rn = rownames(mCommonGenes.grp[cp %in% c(22, 25),])
-#m1 = mDat[rn,]
 # mid response phase days 3 to 5
 rn = apply(mCommonGenes, 1, function(x) any(x[3:5] == c(T, T, T)))
 rn = names(rn[rn])
@@ -204,29 +170,12 @@ df.rn = select(hgu133a2.db, keys = rn, columns = c('ENTREZID', 'SYMBOL', 'GENENA
 # write csv to look at gene list
 write.csv(df.rn[,-1], file=paste('Temp/', 'late_response_commongenes', '.csv', sep=''))
 
-## choose appropriate combination
-# set the bit for comparisons
-# colnames(mCommonGenes)
-# bit = c(1, 1, 1, )
-# i = which(mCommonGenes[,1] & mCommonGenes[,2])
-# i = which(mCommonGenes[,'NoCold0.1'] | mCommonGenes[,'Cold0.1'])
-# i = which(mCommonGenes[,'NoCold0.1'] & !mCommonGenes[,'Cold0.1'])
-
 ## all overexpressed genes if interested in
 i = 1:nrow(mCommonGenes)
 
 m1 = as.matrix(mCommonGenes[i,])
 m1 = mDat[rownames(m1),]
 
-# # if using part of data
-# m1 = m1[,which(fSamples %in% c('UINC', 'NoCold0.1', 'Cold0.1'))]
-# fGroups = as.character(fSamples[which(fSamples %in% c('UINC', 'NoCold0.1', 'Cold0.1'))])
-# colnames(m1) = fGroups
-# fGroups = factor(fGroups, levels = c('UINC', 'NoCold0.1', 'Cold0.1'))
-# m1 = m1[,order(fGroups)]
-# fGroups = fGroups[order(fGroups)]
-
-# if using all data
 fGroups = fSamples
 colnames(m1) = fGroups
 m1 = m1[,order(fGroups)]
@@ -260,19 +209,6 @@ aheatmap(mCounts, color=c('blue', 'black', 'red'), breaks=0, scale='none', Rowv 
          annColors=NA, Colv=NA)
 
 
-# # write results csv files
-# n = (which(sapply(lSigGenes.adj, length) >= 10)) + 1
-# 
-# for (i in seq_along(n)) {
-#   dfGenes = topTable(fit, coef = n[i], number = Inf)
-#   dfGenes.2 = dfGenes[lSigGenes.adj[[names(n[i])]],]
-#   rownames(dfGenes.2) = NULL
-#   f = paste('Temp/', 'Significant_genes_at_10pcFDR_Combined', names(n[i]), '.csv', sep='')
-#   dfGenes.2 = dfGenes.2[,c(2, 3, 4, 5, 6, 8, 9)]
-#   write.csv(dfGenes.2, file=f)
-# }
-
-
 ########### pathway analysis using CGraph library
 # uniprot annotation for data
 cvGenes = rownames(mCommonGenes)
@@ -298,20 +234,18 @@ dfGraph = na.omit(dfGraph)
 
 # get expression data
 mCounts = mDat[unique(dfGenes$PROBEID),]
+## optional adjusting the data for repeated measurements
+mCounts = sapply(rownames(mCounts), function(x){
+  return(predict(lFit[[x]], data.frame(fSamples)))
+})
+mCounts = t(mCounts)
 # map the probe names to enterez ids
 i = match(rownames(mCounts), dfGenes$PROBEID)
 rownames(mCounts) = dfGenes$ENTREZID[i]
-fGroups = as.character(fSamples)
-# select only the groups with significant genes
-n = (which(sapply(lSigGenes.adj, length) >= 10)) + 1
-i = which(fSamples %in% levels(fSamples)[c(1, n)])
-fGroups = factor(fGroups[i], levels = levels(fSamples)[c(1, n)])
-
-# subset the count matrix
-n = (which(sapply(lSigGenes.adj, length) >= 10)) + 1
-i = which(fSamples %in% levels(fSamples)[c(1, n)])
-mCounts = mCounts[,i]
+fGroups = fSamples
+names(fGroups) = dfSamples$subject_id
 colnames(mCounts) = fGroups
+# reorder on grouping factor
 mCounts = mCounts[,order(fGroups)]
 fGroups = fGroups[order(fGroups)]
 mCounts = t(mCounts)
@@ -328,18 +262,6 @@ mCor = cor(mCounts)
 # check distribution 
 hist(mCor, prob=T, main='Correlation of genes', xlab='', family='Arial', breaks=20, xaxt='n')
 axis(1, at = seq(-1, 1, by=0.1), las=2)
-
-# # stabalize the data and check correlation again
-# mCounts.bk = mCounts
-# # stabalize the data
-# mCounts.st = apply(mCounts, 2, function(x) f_ivStabilizeData(x, fGroups))
-# rownames(mCounts.st) = fGroups
-# 
-# # create a correlation matrix
-# mCor = cor(mCounts.st)
-# # check distribution 
-# hist(mCor, prob=T, main='Correlation of genes', xlab='', family='Arial', breaks=20, xaxt='n')
-# axis(1, at = seq(-1, 1, by=0.1), las=2)
 
 # create the graph cluster object
 # using absolute correlation vs actual values lead to different clusters
@@ -423,7 +345,6 @@ cvSum.2 = as.character(dfTopGenes.cent$VertexID)
 dfTopGenes.cent$Summary = n[cvSum.2]
 ####### Section ends
 
-dir.create('Results', showWarnings = F)
 write.csv(dfTopGenes.cent, file='Temp/Top_Centrality_Genes_duke.csv')
 
 ## if we want to look at the expression profiles of the top genes
@@ -553,148 +474,48 @@ data.frame(sort(table(dfCluster$cluster)))
 #csClust = rownames(m$clusters)
 csClust = as.character(unique(dfCluster$cluster))
 
+mMarginal = getClusterMarginal(oGr, t(mCounts))
 
-# plot the graphs at each contrast
-lev = levels(fGroups)[-1]
-m = mCounts
-#m = apply(m, 2, function(x) f_ivStabilizeData(x, fGroups))
-#rownames(m) = rownames(mCounts)
-par(mar=c(1,1,1,1)+0.1)
-for(i in 1:length(lev)){
-  ig = getClusterSubgraph(oGr, csClust)
-  #   # plot the largest compoenent only
-  #   com = components(ig)
-  #   com.lar = which.max(com$csize)
-  #   ig = induced_subgraph(ig, vids = V(ig)[which(com$membership == com.lar)])
-  fG = factor(fGroups, levels= c(levels(fGroups)[1], lev[-i], lev[i]) )
-  ig = f_igCalculateVertexSizesAndColors(ig, t(m), fG, bColor = T, iSize=50)
-  n = V(ig)$name
-  lab = f_dfGetGeneAnnotation(n)
-  V(ig)$label = as.character(lab$SYMBOL)
-  set.seed(1)
-  plot(ig, vertex.label.cex=0.14, layout=layout_with_fr, vertex.frame.color='darkgrey', edge.color='lightgrey',
-       main=paste(lev[i], 'vs', levels(fGroups)[1]))
-  legend('topright', legend = c('Underexpressed', 'Overexpressed'), fill = c('lightblue', 'pink'))
-}
+library(lattice)
+dfData = data.frame(t(mMarginal))
+#colnames(dfData) = gsub('X', '', colnames(dfData))
+dfData$days = factor(gsub('Day (\\d+) AM', '\\1', fGroups))
+dfData$id = factor(names(fGroups))
 
+xyplot(X1280215 ~ days | id, data=dfData, type='o')
+n = colnames(dfData)[1:8]
 
-# #dfCluster = dfCluster[dfCluster$cluster %in% csClust,]
-# df = f_dfGetGeneAnnotation(as.character(dfCluster$gene))
-# dfCluster = cbind(dfCluster[as.character(df$ENTREZID),], SYMBOL=df$SYMBOL, GENENAME=df$GENENAME)
-# write.csv(dfCluster, file='Results/Clusters_ltb_atb.csv')
-# 
-# # save the graph and data objects
-# ltb_atb_data = list(graph=oGr, matrix=mCounts, groups=fGroups)
-# save(ltb_atb_data, file='Objects/ltb_atb_data.rds')
-# 
-# # saving graph object to visualize in cytoscape or other graph viewers
-# lev = levels(fGroups)[-1]
-# m = mCounts
-# for(i in 1:length(lev)){
-#   ig = getClusterSubgraph(oGr, csClust)
-#   fG = factor(fGroups, levels= c(levels(fGroups)[1], lev[-i], lev[i]) )
-#   ig = f_igCalculateVertexSizesAndColors(ig, t(m), fG, bColor = T, iSize=30)
-#   n = V(ig)$name
-#   lab = f_dfGetGeneAnnotation(n)
-#   V(ig)$label = as.character(lab$SYMBOL)
-#   nm = paste('Results/ltb_atb_data', lev[i], 'vs', levels(fGroups)[1], '.graphml', sep='')
-#   write.graph(ig, file = nm, format = 'graphml')
-# }
+sapply(n, function(x) {p =xyplot(dfData[,x] ~ days | id, data=dfData, type='o', ylab=x)
+print(p)})
 
+sapply(n, function(x) {p =bwplot(dfData[,x] ~ days, data=dfData, type='o', ylab=x)
+print(p)})
 
-############################ variable selection
-rn = rownames(mCommonGenes.grp[cp == '1',])
+dfStack = stack(dfData)
+dfStack$days = dfData$days
 
-i = grepl('^Clinical cold$', x = x.affy$group)
-g = grepl('^3$', x.affy$day)
-i = g & i
+xyplot(values ~ days | ind, data=dfStack, type='o')
 
-mDat = exprs(x.affy)
-mDat = mDat[rn, ]
-# sample annotation
-dfSamples = pData(x.affy)
+## xyplots with population average
+mMarginal = getClusterMarginal(oGr, t(mCounts))
+mMarginal = apply(mMarginal, 1, function(x) tapply(x, fGroups, mean))
+mMarginal = scale(mMarginal)
+dfData = data.frame(mMarginal)
+cn = colnames(mMarginal)
+rownames(dfCluster.name) = dfCluster.name$V2
+cn = c('Cytokine Signaling', 'citric acid cycle', 'adaptive immunity', 'mRNA processing', 'transcription', 'lipid metabolism', 
+       'protein modification', 'gpcr signalling')
+colnames(dfData) = cn
+#colnames(dfData) = gsub('X', '', colnames(dfData))
+dfData$days = factor(gsub('Day (\\d+) AM', '\\1', rownames(dfData)))
 
-# sanity check
-identical(dfSamples$sampleID, colnames(mDat))
-table(dfSamples[ , 'group'], dfSamples[  , 'day'])
-table(dfSamples[i, 'group'], dfSamples[i, 'day'])
-## create grouping factors by data
-fSamples = rep(NA, times=nrow(dfSamples))
-fSamples[i] = 'Cold3'
-fSamples[!i] = 'Other'
+n = colnames(dfData)[1:8]
 
-# sanity check
-table(fSamples)
-table(fSamples, dfSamples$group)
-xtabs(~ fSamples + dfSamples$day + dfSamples$group)
-fSamples = factor(fSamples, levels = c('Other', 'Cold3'))
-levels(fSamples)
-table(fSamples)
+sapply(n, function(x) {p =xyplot(dfData[,x] ~ days , data=dfData, type='o', ylab=x)
+print(p)})
 
-# name the genes correctly by enterez id, or symbol
-dfNames.map = select(lumiHumanAll.db, keys = rownames(mDat), columns = c('ENTREZID', 'SYMBOL', 'GENENAME'), keytype = 'PROBEID')
-rownames(mDat) = dfNames.map$SYMBOL
-dfDat = data.frame(t(mDat))
+dfStack = stack(dfData)
+dfStack$days = dfData$days
 
-## apply random forest variable selection
-source('../CCrossValidation/CCrossValidation.R')
+xyplot(values ~ days | ind, data=dfStack, type='o')
 
-oRan = CVariableSelection.RandomForest(dfDat, fSamples, 100, big.warn = F)
-plot.var.selection(oRan)
-
-par(p.old)
-dfRF = CVariableSelection.RandomForest.getVariables(oRan)
-hist(dfRF$ivMean)
-
-# get the top 30 variables
-cvTopGenes = rownames(dfRF)[1:30]
-
-## variable combinations
-dfDat.top = dfDat[,cvTopGenes]
-
-oVar = CVariableSelection.ReduceModel(dfDat.top, fSamples, 100)
-plot.var.selection(oVar)
-
-
-## get the combination that produces the best result
-set.seed(1234)
-test = sample(1:nrow(dfDat), size = nrow(dfDat) * 0.2)
-table(fSamples[test])
-
-## 10 fold nested cross validation with various variable combinations
-par(mfrow=c(2,2))
-# try models of various sizes with CV
-for (i in 2:8){
-  cvTopGenes.sub = CVariableSelection.ReduceModel.getMinModel(oVar, i)
-  dfData.train = dfDat[-test, cvTopGenes.sub]
-  
-  dfData.test = dfDat[test, cvTopGenes.sub]
-  
-  oCV = CCrossValidation.LDA(test.dat = dfData.test, train.dat = dfData.train, test.groups = fSamples[test],
-                             train.groups = fSamples[-test], level.predict = 'Cold3', boot.num = 100)
-  
-  plot.cv.performance(oCV)
-  # print variable names and 95% confidence interval for AUC
-  temp = oCV@oAuc.cv
-  x = as.numeric(temp@y.values)
-  print(paste('Variable Count', i))
-  print(cvTopGenes.sub)
-  print(signif(quantile(x, probs = c(0.025, 0.975)), 2))
-}
-
-cvTopGenes.sub = CVariableSelection.ReduceModel.getMinModel(oVar, 6)
-
-
-mCounts = mDat[cvTopGenes.sub,]
-
-par(mfrow=c(1,2))
-sapply(seq_along(cvTopGenes.sub), function(x) boxplot(mCounts[x,] ~ fSamples, main=cvTopGenes.sub[x]))
-boxplot.cluster.variance(oGr, mCounts, fSamples, log=T, iDrawCount = length(cvTopGenes.sub), las=2)
-
-
-i = 1
-temp = t(as.matrix(mCounts[i,]))
-rownames(temp) = cvTopGenes.sub[i]
-plot.cluster.variance(oGr, temp, fSamples, log=FALSE); i = i+1
-
-dfNames.map[dfNames.map$SYMBOL %in% cvTopGenes.sub,]
