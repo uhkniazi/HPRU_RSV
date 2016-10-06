@@ -12,7 +12,7 @@ Data.id = 5 (Duke dataset)
   * General header file for setting variables and functions.  
 2. **duke_affy_import.R**  
   * Import the .cel files, normalise the data, keep the infected symptomatic samples, create appropriate database entries and save the expression set object.  
-3. **duke_affy_import.R**  
+3. **duke_affy_analysis.R**  
   * Load the affy object and relevant covariates, fit a linear mixed model to each gene, and select genes that show significant DE. Cluster coexpressed genes using CGraphClust library.  
   
 
