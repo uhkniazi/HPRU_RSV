@@ -1,10 +1,10 @@
-# File: icl1_analysis.R
+# File: icl2_analysis.R
 # Desc: Data set from duke uni, affy
 # Auth: umar.niazi@kcl.ac.uk
-# Date: 06/10/2016
+# Date: 07/10/2016
 
 gcwd = getwd()
-setwd('Icl_dataset1/')
+setwd('Icl_dataset2/')
 source('Header.R')
 
 #### data loading
@@ -14,11 +14,11 @@ db = dbConnect(MySQL(), user='rstudio', password='12345', dbname='Projects', hos
 dbListTables(db)
 dbListFields(db, 'MetaFile')
 # another way to get the query, preferred
-dfSample = dbGetQuery(db, "select * from MetaFile where idData=7")
+dfSample = dbGetQuery(db, "select * from MetaFile where idData=8")
 # close connection after getting data
 dbDisconnect(db)
 
-n = paste0(dfSample$location[dfSample$id == 19], dfSample$name[dfSample$id == 19])
+n = paste0(dfSample$location[dfSample$id == 20], dfSample$name[dfSample$id == 20])
 load(n)
 oExp.lumi = lumi.n.q
 rm(lumi.n.q)
@@ -27,7 +27,7 @@ rm(lumi.n.q)
 i = which(oExp.lumi$Symptoms == 'Y')
 oExp.lumi = oExp.lumi[,i]
 # keep only days 0 to 7
-i = which(oExp.lumi$day %in% c(0, 1, 3, 5, 7))
+i = which(oExp.lumi$day %in% c(0, 1, 3, 7, 10))
 oExp.lumi = oExp.lumi[,i]
 mDat = exprs(oExp.lumi)
 # sample annotation
@@ -221,7 +221,7 @@ dfGraph = na.omit(dfGraph)
 mCounts = mDat[unique(dfGenes$PROBEID),]
 ## optional adjusting the data for repeated measurements
 mCounts = sapply(rownames(mCounts), function(x){
-  return(predict(lFit[[x]], data.frame(fSamples)))
+  return(fitted(lFit[[x]]))
 })
 mCounts = t(mCounts)
 # map the probe names to enterez ids
@@ -330,7 +330,7 @@ cvSum.2 = as.character(dfTopGenes.cent$VertexID)
 dfTopGenes.cent$Summary = n[cvSum.2]
 ####### Section ends
 
-write.csv(dfTopGenes.cent, file='Temp/Top_Centrality_Genes_icl1.csv')
+write.csv(dfTopGenes.cent, file='Temp/Top_Centrality_Genes_icl2.csv')
 
 ## if we want to look at the expression profiles of the top genes
 # plot a heatmap of these top genes
@@ -466,7 +466,7 @@ dfData = data.frame(t(mMarginal))
 dfData$days = fGroups
 dfData$id = factor(names(fGroups))
 
-xyplot(X196849 ~ days | id, data=dfData, type='o')
+xyplot(X1280218 ~ days | id, data=dfData, type='o')
 n = colnames(dfData)[1:15]
 
 sapply(n, function(x) {p =xyplot(dfData[,x] ~ days | id, data=dfData, type='o', ylab=x)
@@ -487,14 +487,13 @@ mMarginal = scale(mMarginal)
 dfData = data.frame(mMarginal)
 cn = colnames(mMarginal)
 rownames(dfCluster.name) = dfCluster.name$V2
-cn = c('Vitamins Metabolism', 'Neutrophil degranulation', 'Lipid Metabolism', 'Interferon Signaling', 'Class I MHC', 'Transcription', 
-       'Hemostasis', 'GPCR signalling', 'Citric Acid Cycle', 'IRE1alpha Chaperones', 'Pre-mRNA Processing', 'Epigenetics', 'AA metabolism',
-       'Membrane Transport', 'Protein folding')
+cn = c('Interleukins Signalling', 'Adaptive Immunity', 'Membrane Traffic', 'Neutrophil Degranulation', 'Interferon Signalling',
+       'GPCR Signalling', 'Lipids metabolism', 'Protein metabolism')
 colnames(dfData) = cn
 #colnames(dfData) = gsub('X', '', colnames(dfData))
-dfData$days = factor(rownames(dfData))
+dfData$days = factor(rownames(dfData), levels=c(0, 1, 3, 7, 10))
 
-n = colnames(dfData)[1:15]
+n = colnames(dfData)[1:8]
 
 sapply(n, function(x) {p =xyplot(dfData[,x] ~ days , data=dfData, type='o', ylab=x)
 print(p)})
@@ -503,6 +502,8 @@ dfStack = stack(dfData)
 dfStack$days = dfData$days
 
 xyplot(values ~ days | ind, data=dfStack, type='o')
+
+
 
 
 
